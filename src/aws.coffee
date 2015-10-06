@@ -41,7 +41,7 @@ module.exports = (robot) ->
 
       untagged = _(data.Reservations).filter (reservation) ->
         instances = _(reservation.Instances).filter (instance) ->
-          not _(instance.Tags).findWhere Key: 'role'
+          (not _(instance.Tags).findWhere Key: 'role') and instance.State.Name is 'running'
         instances.length > 0
 
       if untagged.length > 0
