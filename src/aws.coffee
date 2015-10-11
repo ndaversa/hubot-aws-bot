@@ -146,7 +146,7 @@ module.exports = (robot) ->
       else
         message = "There are no matches for `#{query}`"
         message += " that have been running for at least #{duration.humanize()}" if duration?
-        robot.messageroom room, message
+        robot.messageRoom room, message
 
   robot.respond /aws jobs/, (msg) ->
     listJobs msg.message.room
