@@ -1,7 +1,7 @@
 {
   "name": "hubot-aws-bot",
   "description": "A hubot script to query aws for instance information",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "authors": [
     "Nino D'Aversa <nino@ndaversa.com>"
   ],
