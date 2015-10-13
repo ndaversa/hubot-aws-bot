@@ -16,9 +16,11 @@
 #
 # Commands:
 #   hubot aws untagged - List the instances that are not tagged with a role
-#   hubot aws untagged cron <crontime> - Schedule a recurring job for untagged instances at <crontime> interval
-#   hubot aws <query> [running for <duration>] - Search aws instances where instance tag Name contains <query> optionally for those that have been running for at least <duration>
-#   hubot aws <query> [running for <duration>] cron <crontime> - Schedule a recurring job for search for <query> with optional <duration> at <crontime> interval
+#   hubot aws untagged at <crontime> - Schedule a recurring job for untagged instances at <crontime> interval
+#   hubot aws query <query> [running for <duration>] - Search aws instances where instance tag Name contains <query> optionally for those that have been running for at least <duration>
+#   hubot aws query <query> [running for <duration>] at <crontime> - Schedule a recurring job for search for <query> with optional <duration> at <crontime> interval
+#   hubot aws jobs - List all the running jobs
+#   hubot aws remove job <number> - Removes the given job number
 #
 # Author:
 #   ndaversa
@@ -40,9 +42,7 @@ instancesCache =
 module.exports = (robot) ->
 
   createCron = (job) ->
-    new cronJob(job.time, () ->
-      run job
-    , null, true)
+    new cronJob(job.time, (-> run job ), null, true)
 
   run = (job) ->
     func = eval job.func
@@ -64,21 +64,26 @@ module.exports = (robot) ->
     jobs.push job
     saveJobs jobs
     crons.push createCron job
+    return job
 
   removeJob = (number) ->
     jobs = getJobs()
-    delete jobs[number]
-    jobs = _(jobs).compact()
-    saveJobs jobs
+    if jobs[number]
+      delete jobs[number]
+      jobs = _(jobs).compact()
+      saveJobs jobs
 
-    crons[number].stop()
-    delete crons[number]
-    crons = _(crons).compact()
+      crons[number].stop()
+      delete crons[number]
+      crons = _(crons).compact()
+      return yes
+    else
+      return no
 
   listJobs = (room) ->
     message = ""
     for job, index in getJobs()
-      message += "#{index}) Run `#{job.func}` with `#{job.args}`  on cron `#{job.time}`\n"
+      message += "#{index}) Run `#{job.func}` with `#{job.args}` at cron `#{job.time}`\n"
     message = "No jobs have be scheduled" if not message
     robot.messageRoom room, message
 
@@ -106,7 +111,9 @@ module.exports = (robot) ->
           channel: room
           text: message
 
-  reportUntagged = (room) ->
+  reportUntagged = (room, reportZero) ->
+    reportZero = no if not reportZero?
+
     fetchInstances (data) ->
       if not data
         return
@@ -121,10 +128,16 @@ module.exports = (robot) ->
         message = "The following instances are missing at least one the following tags (#{requiredTags}) in AWS:"
         reportInstancesWithMessage untagged, message, room
       else
-        robot.messageRoom room, "There are no untagged instances in AWS, go team!"
+        message = "There are no untagged instances in AWS, go team!"
+        if reportZero
+          robot.messageRoom room, message
+        else
+          console.log "#{room}: #{message}"
 
-  reportOnQuery = (room, query, duration) ->
+  reportOnQuery = (room, query, duration, reportZero) ->
+    reportZero = no if not reportZero?
     duration = moment.duration duration if duration?
+
     fetchInstances (data) ->
       if not data
         return
@@ -146,7 +159,10 @@ module.exports = (robot) ->
       else
         message = "There are no matches for `#{query}`"
         message += " that have been running for at least #{duration.humanize()}" if duration?
-        robot.messageRoom room, message
+        if reportZero
+          robot.messageRoom room, message
+        else
+          console.log "#{room}: #{message}"
 
   robot.respond /aws jobs/, (msg) ->
     listJobs msg.message.room
@@ -154,26 +170,29 @@ module.exports = (robot) ->
 
   robot.respond /aws remove job (\d)/, (msg) ->
     [ __, id ] = msg.match
-    removeJob id
+    if removeJob id
+      msg.reply "Job ##{id} successfully removed"
+    else
+      msg.reply "Unable to remove Job ##{id}"
     msg.finish()
 
-  robot.respond /aws untagged(?: cron ([^]+))?/, (msg) ->
+  robot.respond /aws untagged(?: at ([^]+))?/, (msg) ->
     [ __, cron ] = msg.match
     if cron?
-      setupJob 'reportUntagged', [ msg.message.room ], cron
-      msg.reply "Added Job ##{getJobs().length - 1}"
+      job = setupJob 'reportUntagged', [ msg.message.room ], cron
+      msg.reply "Job ##{getJobs().length - 1} has been scheduled to run `#{job.func}` with `#{job.args}` at cron `#{job.time}`"
     else
-      reportUntagged msg.message.room
+      reportUntagged msg.message.room, yes
     msg.finish()
 
-  robot.respond /aws ([^\s]+)(?: running for ([^\s]+))?(?: cron ([^]+))?/, (msg) ->
+  robot.respond /aws query ([^\s]+)(?: running for ([^\s]+))?(?: at ([^]+))?/, (msg) ->
     [ __, query, duration, cron ] = msg.match
     if cron?
-      setupJob 'reportOnQuery', [ msg.message.room, query, duration ], cron
-      msg.reply "Added Job ##{getJobs().length - 1}"
+      job = setupJob 'reportOnQuery', [ msg.message.room, query, duration ], cron
+      msg.reply "Job ##{getJobs().length - 1} has been scheduled to run `#{job.func}` with `#{job.args}` at cron `#{job.time}`"
     else
-      reportOnQuery msg.message.room, query, duration
+      reportOnQuery msg.message.room, query, duration, yes
     msg.finish()
 
-  # Load existing jobs when module loads
-  crons.push createCron job for job in getJobs()
+  robot.brain.once 'loaded', ->
+    crons.push createCron job for job in getJobs()
