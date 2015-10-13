@@ -93,7 +93,8 @@ module.exports = (robot) ->
     else
       ec2.describeInstances MaxResults: 500, (err, data) ->
         if err
-          console.log err, err.stack
+          robot.logger.error "Received error #{JSON.stringify err}"
+          robot.logger.error err.stack
         else
           instancesCache.data = data
           instancesCache.expiry = moment().add 5, 'seconds'
@@ -132,7 +133,7 @@ module.exports = (robot) ->
         if reportZero
           robot.messageRoom room, message
         else
-          console.log "#{room}: #{message}"
+          robot.logger.info "#{room}: #{message}"
 
   reportOnQuery = (room, query, duration, reportZero) ->
     reportZero = no if not reportZero?
@@ -162,7 +163,7 @@ module.exports = (robot) ->
         if reportZero
           robot.messageRoom room, message
         else
-          console.log "#{room}: #{message}"
+          robot.logger.info "#{room}: #{message}"
 
   robot.respond /aws jobs/, (msg) ->
     listJobs msg.message.room
