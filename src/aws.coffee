@@ -150,7 +150,7 @@ module.exports = (robot) ->
           if duration?
             diff = moment().diff instance.LaunchTime, 'seconds'
             inRange = diff > duration.asSeconds()
-          inRange and name?.toLowerCase().indexOf(query.toLowerCase()) > -1
+          inRange and instance.State.Name is 'running' and name?.toLowerCase().indexOf(query.toLowerCase()) > -1
         instances.length > 0
 
       if matches.length > 0
