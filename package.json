@@ -20,10 +20,10 @@
     "url": "https://github.com/ndaversa/hubot-aws-bot/issues"
   },
   "dependencies": {
-    "aws-sdk": "^2.2.6",
+    "aws-sdk": "^2.2.38",
     "coffee-script": "^1.10.0",
-    "cron": "^1.0.9",
-    "moment": "^2.10.6",
+    "cron": "^1.1.0",
+    "moment": "^2.11.2",
     "underscore": "^1.8.3"
   },
   "main": "index.coffee",
