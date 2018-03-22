@@ -108,7 +108,7 @@ module.exports = (robot) ->
             name = _(instance.Tags).findWhere(Key: 'Name')?.Value or "Unnamed"
             message += "\n `#{name}` (launched #{moment(instance.LaunchTime).fromNow()}) <#{url}|Console Link>"
 
-        robot.adapter.customMessage
+        robot.adapter.send
           channel: room
           text: message
 
