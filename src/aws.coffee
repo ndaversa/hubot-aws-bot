@@ -110,8 +110,9 @@ module.exports = (robot) ->
 
         robot.messageRoom room, message
 
-  reportUntagged = (room, reportZero) ->
+  reportUntagged = (room, duration, reportZero) ->
     reportZero = no if not reportZero?
+    duration = moment.duration duration if duration?
 
     fetchInstances (data) ->
       if not data
@@ -124,11 +125,23 @@ module.exports = (robot) ->
           missing and instance.State.Name is 'running'
         instances.length > 0
 
+      untagged = _(untagged).filter (reservation) ->
+        instances = _(reservation.Instances).filter (instance) ->
+          inRange = yes
+          if duration?
+            diff = moment().diff instance.LaunchTime, 'seconds'
+            inRange = diff > duration.asSeconds()
+          inRange
+        instances.length > 0
+
       if untagged.length > 0
-        message = "The following instances are missing at least one the following tags (#{requiredTags}) in AWS:"
+        message = "The following instances are missing at least one of the tags (#{requiredTags})"
+        message += " and have been running for at least #{duration.humanize()}" if duration?
         reportInstancesWithMessage untagged, message, room
       else
-        message = "There are no untagged instances in AWS, go team!"
+        message = "There are no untagged instances"
+        message += " that have been running for at least #{duration.humanize()}" if duration?
+        message += ", go team!"
         if reportZero
           robot.messageRoom room, message
         else
@@ -176,13 +189,13 @@ module.exports = (robot) ->
       msg.reply "Unable to remove Job ##{id}"
     msg.finish()
 
-  robot.respond /aws untagged(?: at ([^]+))?/, (msg) ->
-    [ __, cron ] = msg.match
+  robot.respond /aws untagged(?: running for ([^\s]+))?(?: at ([^]+))?/, (msg) ->
+    [ __, duration, cron ] = msg.match
     if cron?
-      job = setupJob 'reportUntagged', [ msg.message.room ], cron
+      job = setupJob 'reportUntagged', [ msg.message.room, duration ], cron
       msg.reply "Job ##{getJobs().length - 1} has been scheduled to run `#{job.func}` with `#{job.args}` at cron `#{job.time}`"
     else
-      reportUntagged msg.message.room, yes
+      reportUntagged msg.message.room, duration, yes
     msg.finish()
 
   robot.respond /aws query ([^\s]+)(?: running for ([^\s]+))?(?: at ([^]+))?/, (msg) ->
