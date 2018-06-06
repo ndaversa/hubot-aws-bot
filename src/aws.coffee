@@ -108,15 +108,14 @@ module.exports = (robot) ->
             name = _(instance.Tags).findWhere(Key: 'Name')?.Value or "Unnamed"
             message += "\n `#{name}` (launched #{moment(instance.LaunchTime).fromNow()}) <#{url}|Console Link>"
 
-        robot.adapter.send
-          channel: room
-          text: message
+        robot.messageRoom room, message
 
   reportUntagged = (room, reportZero) ->
     reportZero = no if not reportZero?
 
     fetchInstances (data) ->
       if not data
+        robot.messageRoom room, "No instance data found"
         return
 
       untagged = _(data.Reservations).filter (reservation) ->
