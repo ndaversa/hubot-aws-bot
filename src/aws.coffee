@@ -15,8 +15,8 @@
 # AWS_ACCESS_KEY_ID - AWS Acesss Key
 #
 # Commands:
-#   hubot aws untagged - List the instances that are not tagged with a role
-#   hubot aws untagged at <crontime> - Schedule a recurring job for untagged instances at <crontime> interval
+#   hubot aws untagged [running for <duration>] - List the instances that are not tagged with a role optional minimum runtime <duration> (HH:MM)
+#   hubot aws untagged [running for <duration>] at <crontime> - Schedule a recurring job for untagged instances at <crontime> interval optional minimum runtime <duration> (HH:MM)
 #   hubot aws query <query> [running for <duration>] - Search aws instances where instance tag Name contains <query> optionally for those that have been running for at least <duration>
 #   hubot aws query <query> [running for <duration>] at <crontime> - Schedule a recurring job for search for <query> with optional <duration> at <crontime> interval
 #   hubot aws jobs - List all the running jobs
